@@ -1,150 +1,45 @@
-var express = require('express');
-var app = express();
-var crontab = require("./crontab");
-var restore = require("./restore");
-var moment = require('moment');
+'use strict';
 
-var path = require('path');
-var mime = require('mime');
-var fs = require('fs');
-var busboy = require('connect-busboy'); // for file upload
+const bodyParser = require('body-parser');
+const crontab = require('./lib/crontab');
+const error = require('http-errors');
+const express = require('express');
+const path = require('path');
 
+const app = express();
 
-// include the routes
-var routes = require("./routes").routes;
+app.use(bodyParser.json());
 
-// set the view engine to ejs
-app.set('view engine', 'ejs');
-
-var bodyParser = require('body-parser');
-app.use( bodyParser.json() );       // to support JSON-encoded bodies
-app.use(bodyParser.urlencoded({     // to support URL-encoded bodies
-  extended: true
-}));
-app.use(busboy()); // to support file uploads
-
-// include all folders
+// static stuff
 app.use(express.static(__dirname + '/public'));
 app.use(express.static(__dirname + '/public/css'));
 app.use(express.static(__dirname + '/public/js'));
+
+// views
+app.set('view engine', 'ejs');
 app.set('views', __dirname + '/views');
 
-//set port
+// set port
 app.set('port', (process.env.PORT || 8000));
 
-app.get(routes.root, function(req, res) {
-	// get all the crontabs
-	crontab.reload_db();
-	crontab.crontabs( function(docs){
-		res.render('index', {
-			routes : JSON.stringify(routes),
-			crontabs : JSON.stringify(docs),
-			backups : crontab.get_backup_names(),
-			env : crontab.get_env(),
-      moment: moment
-		});
-	});
-});
-
-app.post(routes.save, function(req, res) {
-	// new job
-	if(req.body._id == -1){
-		crontab.create_new(req.body.name, req.body.command, req.body.schedule, req.body.logging);
-	}
-	// edit job
-	else{
-		crontab.update(req.body);
-	}
-	res.end();
-});
-
-app.post(routes.stop, function(req, res) {
-	crontab.status(req.body._id, true);
-	res.end();
-});
-
-app.post(routes.start, function(req, res) {
-	crontab.status(req.body._id, false);
-	res.end();
-});
-
-app.post(routes.remove, function(req, res) {
-	crontab.remove(req.body._id);
-	res.end();
-});
-app.get(routes.crontab, function(req, res, next) {
-	crontab.set_crontab(req.query.env_vars, function(err) {
+app.get('/', function(req, res, next) {
+	crontab.listCrons((err, crontab, checksum) => {
 		if (err) next(err);
-		else res.end();
+		else res.render('index', {checksum, crontab});
 	});
 });
 
-app.get(routes.backup, function(req, res) {
-	crontab.backup();
-	res.end();
-});
+app.post('/save_crontab', function(req, res, next) {
+	if (!req.body.checksum) return next(error(400, 'checksum is missing'));
+	if (!req.body.crontab) return next(error(400, 'crontab is missing'));
 
-app.get(routes.restore, function(req, res) {
-	// get all the crontabs
-	restore.crontabs(req.query.db, function(docs){
-		res.render('restore', {
-			routes : JSON.stringify(routes),
-			crontabs : JSON.stringify(docs),
-			backups : crontab.get_backup_names(),
-			db: req.query.db
-		});
+	const checksum = req.body.checksum;
+	const newCrontab = req.body.crontab;
+
+	crontab.saveCrontab(newCrontab, checksum, (err, newCrontab, newChecksum) => {
+		if (err) next(err);
+		else res.status(200).json({checksum: newChecksum, crontab: newCrontab});
 	});
-});
-
-app.get(routes.delete_backup, function(req, res) {
-	restore.delete(req.query.db);
-	res.end();
-});
-
-app.get(routes.restore_backup, function(req, res) {
-	crontab.restore(req.query.db);
-	res.end();
-});
-
-app.get(routes.export, function(req, res) {
-	var file = __dirname + '/crontabs/crontab.db';
-
-	var filename = path.basename(file);
-	var mimetype = mime.lookup(file);
-
-	res.setHeader('Content-disposition', 'attachment; filename=' + filename);
-	res.setHeader('Content-type', mimetype);
-
-	var filestream = fs.createReadStream(file);
-	filestream.pipe(res);
-});
-
-
-app.post(routes.import, function(req, res) {
-	var fstream;
-	req.pipe(req.busboy);
-	req.busboy.on('file', function (fieldname, file, filename) {
-		fstream = fs.createWriteStream(__dirname + '/crontabs/crontab.db');
-		file.pipe(fstream);
-		fstream.on('close', function () {
-			crontab.reload_db();
-			res.redirect(routes.root);
-		});
-	});
-});
-
-app.get(routes.import_crontab, function(req, res) {
-	crontab.import_crontab();
-	res.end();
-});
-
-app.get(routes.logger, function(req, res) {
-	var fs = require("fs");
-	_file = crontab.log_folder +"/"+req.query.id+".log";
-	if (fs.existsSync(_file))
-		res.sendFile(_file);
-	else
-		res.end("No errors logged yet");
 });
 
 // error handler
@@ -152,13 +47,12 @@ app.use(function(err, req, res, next) {
 	var data = {};
 	var statusCode = err.statusCode || 500;
 
-	data.message = err.message || 'Internal Server Error';
+	data.message = err.message || 'internal server error';
 
 	if (process.env.NODE_ENV === 'development' && err.stack) {
 		data.stack = err.stack
 	}
-
-	if (parseInt(data.statusCode) >= 500) {
+	if (parseInt(statusCode) >= 500) {
 		console.error(err);
 	}
 

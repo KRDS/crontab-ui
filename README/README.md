@@ -1,56 +1,35 @@
 Crontab UI
 ==========
 
-Editing the plain text crontab is error prone for managing jobs, e.g., adding jobs, deleting jobs, or pausing jobs. A small mistake can easily bring down all the jobs and might cost you a lot of time. With Crontab UI, it is very easy to manage crontab. Here are the key features of Crontab UI.
+Forked and heavily modified from 
+[alseambusher/crontab-ui](https://github.com/alseambusher/crontab-ui).
 
-![flow](https://github.com/alseambusher/crontab-ui/raw/gh-pages/screenshots/flow.gif)
+## Intro
 
-1. Easy setup. You can even import from existing crontab.
-2. Safe adding, deleting or pausing jobs. Easy to maintain hundreds of jobs.
-3. Backup your crontabs.
-4. Export crontab and deploy on other machines without much hassle.
-5. Error log support.
+Really got not much in common with the original - instead of using an internal 
+DB it loads and writes directly to the system crontab for the user it runs as.
 
-Read [this](http://lifepluslinux.blogspot.in/2015/06/crontab-ui-easy-and-safe-way-to-manage.html) to see more details.
+Most advanced features like backup, import & export have been removed in favor 
+of a simpler usage model. Not for suitable everyone, but fits the purpose we
+need it for.
 
-##Setup
+### Conflicting Updates
 
-    npm install -g crontab-ui
-    crontab-ui
-    
-If you need to set/use an alternate port, you may do so by setting an environment variable before starting the process:
+Memorizes an MD5 hash of the crontab as it was last read. If on update the 
+current crontabs hashsum doesn't match the update is rejected.
 
-    PORT=9000 crontab-ui
+The read & hash check operation is not atomic (even in  Node.js's single-thread
+model). It should be safe enough for most scenarios, but there is no strong 
+protection against concurrent writes - Latest write wins.
 
-###Adding, deleting, pausing and resuming jobs.
+## Usage
 
-Once setup Crontab UI provides you with a web interface using which you can manage all the jobs without much hassle.
+Fork and run `node app.js`. Open webbrowser on port `8000` by default.
 
-![basic](https://github.com/alseambusher/crontab-ui/raw/gh-pages/screenshots/main.png)
+## Supported Platforms
 
-###Import from existing crontab
+Anything that has a `crontab` command should work.
 
-Import from existing crontab file automatically.
-![import](https://github.com/alseambusher/crontab-ui/raw/gh-pages/screenshots/import.gif)
+## License
 
-###Backup and restore crontab
-
-Keep backups of your crontab in case you mess up.
-![backup](https://github.com/alseambusher/crontab-ui/raw/gh-pages/screenshots/backup.png)
-
-###Export and import crontab on multiple instances of Crontab UI.
-
-If you want to run the same jobs on multiple machines simply export from one instance and import the same on the other. No SSH, No copy paste!
-
-![export](https://github.com/alseambusher/crontab-ui/raw/gh-pages/screenshots/import_db.png)
-
-But make sure to take a backup before importing.
-
-###Separate error log support for every job
-![logs](https://github.com/alseambusher/crontab-ui/raw/gh-pages/screenshots/log.gif)
-
-###Contribute
-Fork Crontab UI and contribute to it. Pull requests are encouraged.
-
-###License
 [MIT](LICENSE.md)

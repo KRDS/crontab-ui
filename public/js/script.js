@@ -1,178 +1,245 @@
 /*jshint esversion: 6 */
 /*********** MessageBox ****************/
+
 // simply show info.  Only close button
 function infoMessageBox(message, title){
-	$("#info-body").html(message);
-	$("#info-title").html(title);
-	$("#info-popup").modal('show');
-}
-// like info, but for errors.
-function errorMessageBox(message) {
-	var msg =
-		"Operation failed: " + message + ". " +
-		"Please see error log for details.";
-	$("#info-body").html(msg);
-	$("#info-title").html("Error");
-	$("#info-popup").modal('show');
-}
-// modal with full control
-function messageBox(body, title, ok_text, close_text, callback){
-	$("#modal-body").html(body);
-	$("#modal-title").html(title);
-	if (ok_text) $("#modal-button").html(ok_text);
-	if(close_text) $("#modal-close-button").html(close_text);
-	$("#modal-button").unbind("click"); // remove existing events attached to this
-	$("#modal-button").click(callback);
-	$("#popup").modal("show");
+	$('#info-body').html(message);
+	$('#info-title').html(title);
+	$('#info-popup').modal('show');
 }
 
+// like info, but for errors.
+function errorMessageBox(message) {
+	$('#info-body').html(message);
+	$('#info-title').html('Error');
+	$('#info-popup').modal('show');
+}
+
+// modal with full control
+function messageBox(body, title, okText, closeText, callback) {
+	$('#modal-body').html(body);
+	$('#modal-title').html(title);
+	if (okText) $('#modal-button').html(okText);
+	if (closeText) $('#modal-close-button').html(closeText);
+	$('#modal-button').unbind('click');
+	$('#modal-button').click(callback);
+	$('#popup').modal('show');
+}
+
+function handleError(response) {
+	var msg = response.statusText;
+	if (response.status < 500
+		&& response.responseJSON
+		&& response.responseJSON.message) {
+		msg = response.responseJSON.message;
+	}
+	msg =
+		'Operation failed: ' + msg + '. ' +
+		'Please see error log for details.';
+	errorMessageBox(msg, 'Error');
+}
+
+function setFlash() {
+	Cookies.set('flash', 'Crontab updated');
+}
+
+function showFlash() {
+	var msg = Cookies.get('flash');
+	Cookies.remove('flash');
+	if (msg) {
+		showAlert(msg);
+	}
+}
+
+function showAlert(msg) {
+	var alert = $('#alert-info');
+	var content = $('#alert-info .content');
+	var button = $('#alert-info .close');
+
+	var timer = setTimeout(function() {
+		alert.hide();
+	}, 3000);
+
+	button.unbind('click');
+	button.click(function() {
+		clearTimeout(timer);
+		alert.hide();
+	});
+
+	content.text(msg);
+	alert.show();
+}
+
+function showCronDates() {
+	var cron, m, elem;
+	for (var i = 0; i < crontab.length; i++) {
+		cron = crontab[i];
+		elem = $('#next-' + cron.id);
+		if (cron.next !== 'reboot') {
+			m = moment(cron.next);
+			elem.text(m.fromNow());
+			elem.attr('title', m.format());
+		} else {
+			elem.text('Reboot');
+			elem.attr('title', 'After next reboot');
+		}
+	}
+}
 
 /*********** crontab actions ****************/
 
-function deleteJob(_id){
-	// TODO fix this. pass callback properly
-	messageBox("<p> Do you want to delete this Job? </p>", "Confirm delete", null, null, function(){
-		$.post(routes.remove, {_id: _id}, function(){
-			location.reload();
+function deleteJob(id) {
+	messageBox(
+		'Do you want to delete this Job?',
+		'Confirm delete',
+		'Do It!',
+		'Never Mind',
+		function() {
+			doDeleteJob(id);
 		});
-	});
 }
 
-function stopJob(_id){
-	messageBox("<p> Do you want to stop this Job? </p>", "Confirm stop job", null, null, function(){
-		$.post(routes.stop, {_id: _id}, function(){
-			location.reload();
-		});
-	});
-}
+function doDeleteJob(id) {
+	var cron = findJob(id);
 
-function startJob(_id){
-	messageBox("<p> Do you want to start this Job? </p>", "Confirm start job", null, null, function(){
-		$.post(routes.start, {_id: _id}, function(){
-			location.reload();
-		});
-	});
-}
-
-function setCrontab(){
-	messageBox("<p> Do you want to set the crontab file? </p>", "Confirm crontab setup", null, null, function(){
-		$.get(routes.crontab, { "env_vars": $("#env_vars").val() }, function(){
-			// TODO show only if success
-			infoMessageBox("Successfuly set crontab file!","Information");
-		}).fail(function(response) {
-			errorMessageBox(response.statusText,"Error");
-		});
-	});
-}
-
-function getCrontab(){
-	messageBox("<p> Do you want to get the crontab file? </p>", "Confirm crontab retrieval", null, null, function(){
-		$.get(routes.import_crontab, { "env_vars": $("#env_vars").val() }, function(){
-			// TODO show only if success
-			infoMessageBox("Successfuly got the crontab file!","Information");
-			location.reload();
-		});
-	});
-}
-
-function editJob(_id){
-	var job = null;
-	crontabs.forEach(function(crontab){
-		if(crontab._id == _id)
-			job = crontab;
-	});
-	if(job){
-		$("#job").modal("show");
-		$("#job-name").val(job.name);
-		$("#job-command").val(job.command);
-		// if macro not used
-		if(job.schedule.indexOf("@") != 0){
-			var components = job.schedule.split(" ");
-			$("#job-minute").val(components[0]);
-			$("#job-hour").val(components[1]);
-			$("#job-day").val(components[2]);
-			$("#job-month").val(components[3]);
-			$("#job-week").val(components[4]);
-		}
-		schedule = job.schedule;
-		job_command = job.command;
-		if (job.logging && job.logging != "false")
-			$("#job-logging").prop("checked", true);
-		job_string();
+	if(!cron) {
+		errorMessageBox('Invalid job id: ' + id);
+		return;
 	}
 
-	$("#job-save").unbind("click"); // remove existing events attached to this
-	$("#job-save").click(function(){
-		// TODO good old boring validations
-		$.post(routes.save, {name: $("#job-name").val(), command: job_command , schedule: schedule, _id: _id, logging: $("#job-logging").prop("checked")}, function(){
-			location.reload();
-		});
+	crontab.splice(crontab.indexOf(cron), 1);
+	updateCrontab();
+}
+
+function findJob(id) {
+	for(i = 0; i< crontab.length; i++) {
+		if (crontab[i].id === id) {
+			return crontab[i];
+		}
+	}
+}
+
+function reloadCrontab() {
+	location.reload();
+}
+
+function editJob(id){
+	var cron = findJob(id);
+
+	if(!cron) {
+		errorMessageBox('Invalid job id: ' + id);
+		return;
+	}
+
+	$('#job-command').val(cron.command);
+
+	// if macro not used
+	if(cron.schedule.indexOf('@') != 0){
+		var components = cron.schedule.split(' ');
+		$('#job-minute').val(components[0]);
+		$('#job-hour').val(components[1]);
+		$('#job-day').val(components[2]);
+		$('#job-month').val(components[3]);
+		$('#job-week').val(components[4]);
+	}
+
+	schedule = cron.schedule;
+	jobCommand = cron.command;
+
+	jobString();
+
+	$('#job-save').unbind('click');
+	$('#job-save').click(function() {
+		cron.command = jobCommand;
+		cron.schedule = schedule;
+		updateCrontab();
 	});
+
+	$('#job').modal('show');
 }
 
 function newJob(){
-	schedule = "";
-	job_command = "";
-	$("#job-minute").val("*");
-	$("#job-hour").val("*");
-	$("#job-day").val("*");
-	$("#job-month").val("*");
-	$("#job-week").val("*");
+	schedule = '';
+	jobCommand = '';
 
-	$("#job").modal("show");
-	$("#job-name").val("");
-	$("#job-command").val("");
-	job_string();
-	$("#job-save").unbind("click"); // remove existing events attached to this
-	$("#job-save").click(function(){
-		// TODO good old boring validations
-		$.post(routes.save, {name: $("#job-name").val(), command: job_command , schedule: schedule, _id: -1, logging: $("#job-logging").prop("checked")}, function(){
-			location.reload();
-		});
+	$('#job-minute').val('*');
+	$('#job-hour').val('*');
+	$('#job-day').val('*');
+	$('#job-month').val('*');
+	$('#job-week').val('*');
+
+	$('#job-name').val('');
+	$('#job-command').val('');
+
+	jobString();
+
+	$('#job-save').unbind('click'); // remove existing events attached to this
+	$('#job-save').click(function() {
+		var cron = {command: jobCommand, schedule: schedule};
+		crontab.push(cron);
+		updateCrontab();
+	});
+
+	$('#job').modal('show');
+}
+
+function updateCrontab() {
+	var postData = {crontab: crontab, checksum: checksum};
+	// var postData = {crontab: crontab};
+	console.log('Updating crontab');
+	console.log(postData);
+
+	$.ajax({
+		type: 'post',
+		url: '/save_crontab',
+		data: JSON.stringify(postData),
+		contentType: 'application/json',
+		dataType: 'json',
+	})
+	.done(function() {
+		console.log('reload');
+		setFlash('Crontab updated');
+		reloadCrontab();
+	})
+	.fail(function(response) {
+		if (response.status === 409) {
+			handleConflictingUpdate();
+		} else {
+			handleError(response);
+		}
 	});
 }
 
-function doBackup(){
-	messageBox("<p> Do you want to take backup? </p>", "Confirm backup", null, null, function(){
-		$.get(routes.backup, {}, function(){
-			location.reload();
-		});
-	});
+function handleConflictingUpdate() {
+	var msg =
+		'Looks like the crontab was updated by someone else. ' +
+		'Please reload  the page and try again!'
+	messageBox(
+		msg,
+		'Conflicting Update',
+		'Reload Page',
+		'Dismiss',
+		function() {
+			reloadCrontab();
+		}
+	);
 }
-
-function delete_backup(db_name){
-	messageBox("<p> Do you want to delete this backup? </p>", "Confirm delete", null, null, function(){
-		$.get(routes.delete_backup, {db: db_name}, function(){
-			location = routes.root;
-		});
-	});
-}
-
-function restore_backup(db_name){
-	messageBox("<p> Do you want to restore this backup? </p>", "Confirm restore", null, null, function(){
-		$.get(routes.restore_backup, {db: db_name}, function(){
-			location = routes.root;
-		});
-	});
-}
-
-function import_db(){
-	messageBox("<p> Do you want to import crontab?<br /> <b style='color:red'>NOTE: It is recommended to take a backup before this.</b> </p>", "Confirm import from crontab", null, null, function(){
-		$('#import_file').click();
-	});
-}
-
 
 // script corresponding to job popup management
-var schedule = "";
-var job_command = "";
-function job_string(){
-	$("#job-string").val(schedule + " " + job_command);
-	return schedule + " " + job_command;
+var schedule = '';
+var jobCommand = '';
+
+function jobString(){
+	$('#job-string').val(schedule + ' ' + jobCommand);
+	return schedule + ' ' + jobCommand;
 }
 
-function set_schedule(){
-	schedule = $("#job-minute").val() + " " +$("#job-hour").val() + " " +$("#job-day").val() + " " +$("#job-month").val() + " " +$("#job-week").val();
-	job_string();
+function setSchedule(){
+	schedule =
+		$("#job-minute").val() + " " +
+		$("#job-hour").val() + " " +
+		$("#job-day").val() + " " +
+		$("#job-month").val() + " " +
+		$("#job-week").val();
+	jobString();
 }
-// popup management ends
