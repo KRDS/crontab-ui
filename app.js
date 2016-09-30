@@ -1,6 +1,7 @@
 'use strict';
 
 const bodyParser = require('body-parser');
+const config = require('./configure');
 const crontab = require('./lib/crontab');
 const error = require('http-errors');
 const express = require('express');
@@ -20,14 +21,26 @@ app.set('view engine', 'ejs');
 app.set('views', __dirname + '/views');
 
 // set port
-app.set('port', (process.env.PORT || 8000));
+app.set('port', config.port);
 
 app.get('/', function(req, res, next) {
 	crontab.listCrons((err, crontab, checksum) => {
 		if (err) next(err);
-		else res.render('index', {checksum, crontab});
+		else res.render('index', {
+			checksum: checksum, 
+			crontab: crontab, 
+			json: renderJSON,
+			email: errorEmail,
+		});
 	});
 });
+
+// render JSON in a way it's safe for the view engine to parse.
+function renderJSON(data) {
+	return JSON.stringify(data)
+		.replace(/\\/g, '\\\\') // escape backslashes
+		.replace(/\'/g, '\\\''); // escape single quotes
+}
 
 app.post('/save_crontab', function(req, res, next) {
 	if (!req.body.checksum) return next(error(400, 'checksum is missing'));

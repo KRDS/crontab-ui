@@ -70,6 +70,10 @@ function showAlert(msg) {
 	alert.show();
 }
 
+// TODO: by now we could build the entire table using JS, no need to pre-render.
+
+// Calculate next execution from now and the full UTC date as a popover into 
+// the view.
 function showCronDates() {
 	var cron, m, elem;
 	for (var i = 0; i < crontab.length; i++) {
@@ -83,6 +87,19 @@ function showCronDates() {
 			elem.text('Reboot');
 			elem.attr('title', 'After next reboot');
 		}
+	}
+}
+
+// Strip the logging/error email parts from the cron command for display. The
+// full command will be set as `data-content` attribute for the popover.
+function showCronCommands() {
+	var cron, cmd, elem;
+	for (var i = 0; i < crontab.length; i++) {
+		cron = crontab[i];
+		elem = $('#cmd-' + cron.id);
+		cmd = undecorate(cron.command);
+		elem.text(cmd);
+		elem.attr('data-content', '<code>' + cron.command + '</code>');
 	}
 }
 
@@ -150,7 +167,7 @@ function editJob(id){
 
 	$('#job-save').unbind('click');
 	$('#job-save').click(function() {
-		cron.command = jobCommand;
+		cron.command = decorate(jobCommand);
 		cron.schedule = schedule;
 		updateCrontab();
 	});
@@ -175,7 +192,10 @@ function newJob(){
 
 	$('#job-save').unbind('click'); // remove existing events attached to this
 	$('#job-save').click(function() {
-		var cron = {command: jobCommand, schedule: schedule};
+		var cron = {
+			command: decorate(jobCommand), 
+			schedule: schedule
+		};
 		crontab.push(cron);
 		updateCrontab();
 	});
@@ -185,9 +205,6 @@ function newJob(){
 
 function updateCrontab() {
 	var postData = {crontab: crontab, checksum: checksum};
-	// var postData = {crontab: crontab};
-	console.log('Updating crontab');
-	console.log(postData);
 
 	$.ajax({
 		type: 'post',
@@ -225,13 +242,36 @@ function handleConflictingUpdate() {
 	);
 }
 
+function decorate(cmd) {
+	if (!email) return cmd;
+	if (cmd === '') return cmd;
+
+	var id = Math.floor(10000 + Math.random() * 90000);
+	var logFile = '/tmp/__cronui_err.' + id;
+
+	return cmd + ' > /dev/null 2> ' + logFile  + ' || ' + 
+		'(echo \'' + cmd +  '\' >> ' + logFile + ';' +
+		' mail -s "Cron error on `hostName`" ' + email + ' < ' + logFile + ';'
+		' rm ' + logFile + ')';
+}
+
+function undecorate(entry) {
+	if (entry.indexOf('__cronui_err') < 0) {
+		return entry;
+	} else {
+		var idx = entry.indexOf(' > /dev/null');
+		if (idx < 0) return entry;
+		else return entry.substr(0, idx);
+	}
+}
+
 // script corresponding to job popup management
 var schedule = '';
 var jobCommand = '';
 
 function jobString(){
-	$('#job-string').val(schedule + ' ' + jobCommand);
-	return schedule + ' ' + jobCommand;
+	$('#job-string').val(schedule + ' ' + decorate(jobCommand));
+	return schedule + ' ' + decorate(jobCommand);
 }
 
 function setSchedule(){

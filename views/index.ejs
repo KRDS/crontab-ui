@@ -9,14 +9,16 @@
 <script src="script.js"></script>
 
 <link rel="stylesheet" href="bootstrap.min.css" />
-<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.12/css/dataTables.bootstrap.min.css"/>
 
 <script type="text/javascript">
-	var crontab = JSON.parse('<%- JSON.stringify(crontab).replace(/\\/g, '\\\\') %>');
+	var crontab = JSON.parse('<%- json(crontab) %>');
 	var checksum = "<%- checksum %>";
+	var email = "<%= email %>";
 
 	$(function () {
 		$('[data-toggle="tooltip"]').tooltip();
+		$('[data-toggle="popover"]').popover();
+		console.log(crontab);
 	});
 </script>
 
@@ -32,6 +34,10 @@
 	}
 	.cron-action {
 		cursor: pointer;
+	}
+	.cron-job {
+		font-family: monospace;
+		font-size: -1;
 	}
 </style>
 
@@ -79,14 +85,27 @@
 		<tr class="cron_inactive">
 		<% } %>
 			<!-- <td><%= cron.id %></td> -->
-			<td><code><%= cron.command %></code></td>
+			<td>
+				<code 
+					id="cmd-<%= cron.id %>"
+					data-toggle="popover"
+					data-placement="right"
+					data-html="true"
+					tabindex="0"
+					data-trigger="focus"
+					title="Full Command"
+					data-content=".."
+					style="cursor:pointer">
+					$cronCommand
+				</code>
+			</td>
 			<td><span><%= cron.schedule %></span></td>
 			<td><span
-				id="next-<%= cron.id %>"
-				data-toggle="tooltip" 
-				data-placement="bottom" 
-				title=""
-				style="cursor:pointer">
+					id="next-<%= cron.id %>"
+					data-toggle="tooltip" 
+					data-placement="bottom" 
+					title=""
+					style="cursor:pointer">
 				</span>
 			</td>
 			<td class='cron-actions'>
@@ -115,6 +134,7 @@
 <% include popup.ejs %>
 <script type="text/javascript">
 	showCronDates();
+	showCronCommands();
 	showFlash();
 </script>
 </body>
