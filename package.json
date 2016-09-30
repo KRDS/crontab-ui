@@ -1,6 +1,6 @@
 {
   "name": "@joerx/crontab-ui",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Easy and safe way to manage your crontab file",
   "main": "index.js",
   "scripts": {
@@ -29,8 +29,12 @@
     "node"
   ],
   "contributors": [
-    {"name": "Suresh Alse"},
-    {"name": "Joerg Henning"}
+    {
+      "name": "Suresh Alse"
+    },
+    {
+      "name": "Joerg Henning"
+    }
   ],
   "license": "MIT",
   "bugs": {
