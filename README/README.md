@@ -10,13 +10,13 @@ Really got not much in common with the original - instead of using an internal
 DB it loads and writes directly to the system crontab for the user it runs as.
 
 Most advanced features like backup, import & export have been removed in favor 
-of a simpler usage model. Not for suitable everyone, but fits the purpose we
-need it for.
+of a simpler usage model. Not suitable everyone, but fits the purpose we need
+it for.
 
 ### Conflicting Updates
 
 Memorizes an MD5 hash of the crontab as it was last read. If on update the 
-current crontabs hashsum doesn't match the update is rejected.
+hashsums don't match the update is rejected.
 
 The read & hash check operation is not atomic (even in  Node.js's single-thread
 model). It should be safe enough for most scenarios, but there is no strong 
