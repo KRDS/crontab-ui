@@ -148,7 +148,6 @@ function editJob(id){
 		return;
 	}
 
-	$('#job-command').val(cron.command);
 
 	// if macro not used
 	if(cron.schedule.indexOf('@') != 0){
@@ -161,9 +160,11 @@ function editJob(id){
 	}
 
 	schedule = cron.schedule;
-	jobCommand = cron.command;
-
+	jobCommand = undecorate(cron.command);
+	
 	jobString();
+
+	$('#job-command').val(jobCommand);
 
 	$('#job-save').unbind('click');
 	$('#job-save').click(function() {
