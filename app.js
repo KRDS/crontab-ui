@@ -30,7 +30,7 @@ app.get('/', function(req, res, next) {
 			checksum: checksum, 
 			crontab: crontab, 
 			json: renderJSON,
-			email: errorEmail,
+			email: config.errorEmail,
 		});
 	});
 });
