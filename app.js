@@ -30,6 +30,7 @@ app.get('/', function(req, res, next) {
 			checksum: checksum, 
 			crontab: crontab, 
 			json: renderJSON,
+			hostname: config.hostname,
 			email: config.errorEmail,
 		});
 	});
