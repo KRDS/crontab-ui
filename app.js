@@ -31,6 +31,7 @@ app.get('/', function(req, res, next) {
 			crontab: crontab, 
 			json: renderJSON,
 			hostname: config.hostname,
+			user: config.user,
 			email: config.errorEmail,
 		});
 	});
