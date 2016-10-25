@@ -252,7 +252,7 @@ function decorate(cmd) {
 
 	return cmd + ' > /dev/null 2> ' + logFile  + ' || ' +
 		'(echo \'' + cmd +  '\' >> ' + logFile + ';' +
-		' mail -s "Cron error on `hostName`" ' + email + ' < ' + logFile + ';' +
+		' mail -s "Cron error on `hostname`" ' + email + ' < ' + logFile + ';' +
 		' rm ' + logFile + ')';
 }
 
