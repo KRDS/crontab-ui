@@ -72,7 +72,7 @@ function showAlert(msg) {
 
 // TODO: by now we could build the entire table using JS, no need to pre-render.
 
-// Calculate next execution from now and the full UTC date as a popover into 
+// Calculate next execution from now and the full UTC date as a popover into
 // the view.
 function showCronDates() {
 	var cron, m, elem;
@@ -161,7 +161,7 @@ function editJob(id){
 
 	schedule = cron.schedule;
 	jobCommand = undecorate(cron.command);
-	
+
 	jobString();
 
 	$('#job-command').val(jobCommand);
@@ -194,7 +194,7 @@ function newJob(){
 	$('#job-save').unbind('click'); // remove existing events attached to this
 	$('#job-save').click(function() {
 		var cron = {
-			command: decorate(jobCommand), 
+			command: decorate(jobCommand),
 			schedule: schedule
 		};
 		crontab.push(cron);
@@ -250,9 +250,9 @@ function decorate(cmd) {
 	var id = Math.floor(10000 + Math.random() * 90000);
 	var logFile = '/tmp/__cronui_err.' + id;
 
-	return cmd + ' > /dev/null 2> ' + logFile  + ' || ' + 
+	return cmd + ' > /dev/null 2> ' + logFile  + ' || ' +
 		'(echo \'' + cmd +  '\' >> ' + logFile + ';' +
-		' mail -s "Cron error on `hostName`" ' + email + ' < ' + logFile + ';'
+		' mail -s "Cron error on `hostName`" ' + email + ' < ' + logFile + ';' +
 		' rm ' + logFile + ')';
 }
 
