@@ -246,24 +246,12 @@ function handleConflictingUpdate() {
 function decorate(cmd) {
 	if (!email) return cmd;
 	if (cmd === '') return cmd;
-
-	var id = Math.floor(10000 + Math.random() * 90000);
-	var logFile = '/tmp/__cronui_err.' + id;
-
-	return cmd + ' > /dev/null 2> ' + logFile  + ' || ' +
-		'(echo \'' + cmd +  '\' >> ' + logFile + ';' +
-		' mail -s "Cron error on `hostname`" ' + email + ' < ' + logFile + ';' +
-		' rm ' + logFile + ')';
+	if (/^cronic/.match(cmd)) return cmd;
+	return 'cronic '+cmd;
 }
 
 function undecorate(entry) {
-	if (entry.indexOf('__cronui_err') < 0) {
-		return entry;
-	} else {
-		var idx = entry.indexOf(' > /dev/null');
-		if (idx < 0) return entry;
-		else return entry.substr(0, idx);
-	}
+	return entry;
 }
 
 // script corresponding to job popup management
