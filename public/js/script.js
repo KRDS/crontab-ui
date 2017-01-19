@@ -244,9 +244,9 @@ function handleConflictingUpdate() {
 }
 
 function decorate(cmd) {
-	if (!email) return cmd;
+	// if (!email) return cmd;
 	if (cmd === '') return cmd;
-	if (/^cronic/.match(cmd)) return cmd;
+	if (/^cronic/.test(cmd)) return cmd;
 	return 'cronic '+cmd;
 }
 
