@@ -53,8 +53,6 @@ app.post('/save_crontab', function(req, res, next) {
 	// const newCrontab = req.body.crontab
 	const newCrontab = crontab.fromJSON(req.body);
 
-	console.log('saving crontab');
-
 	crontab.saveCrontab(newCrontab, (err, newCrontab) => {
 		if (err) next(err);
 		else res.status(200).json(newCrontab);
