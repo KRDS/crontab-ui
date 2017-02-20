@@ -32,6 +32,7 @@ app.get('/', function(req, res, next) {
 			json: renderJSON,
 			hostname: config.hostname,
 			username: config.username,
+			version: config.version,
 			email: config.errorEmail,
 		});
 	});
