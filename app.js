@@ -25,18 +25,19 @@ app.set('port', config.port);
 
 app.get('/', function(req, res, next) {
 	crontab.listCrons((err, crontab, checksum) => {
-		if (err) next(err);
-		else res.render('index', {
+		if (err) return next(err);
+		res.render('index', {
 			checksum: checksum, 
-			crontab: crontab, 
+			crontab: crontab,
 			json: renderJSON,
 			hostname: config.hostname,
+			username: config.username,
 			email: config.errorEmail,
 		});
 	});
 });
 
-// render JSON in a way it's safe for the view engine to parse.
+// render JSON in a way it is safe for the view engine to parse.
 function renderJSON(data) {
 	return JSON.stringify(data)
 		.replace(/\\/g, '\\\\') // escape backslashes
@@ -45,14 +46,17 @@ function renderJSON(data) {
 
 app.post('/save_crontab', function(req, res, next) {
 	if (!req.body.checksum) return next(error(400, 'checksum is missing'));
-	if (!req.body.crontab) return next(error(400, 'crontab is missing'));
+	if (!req.body.lines) return next(error(400, 'crontab is missing'));
 
-	const checksum = req.body.checksum;
-	const newCrontab = req.body.crontab;
+	// const checksum = req.body.checksum;
+	// const newCrontab = req.body.crontab
+	const newCrontab = crontab.fromJSON(req.body);
 
-	crontab.saveCrontab(newCrontab, checksum, (err, newCrontab, newChecksum) => {
+	console.log('saving crontab');
+
+	crontab.saveCrontab(newCrontab, (err, newCrontab) => {
 		if (err) next(err);
-		else res.status(200).json({checksum: newChecksum, crontab: newCrontab});
+		else res.status(200).json(newCrontab);
 	});
 });
 
@@ -67,7 +71,7 @@ app.use(function(err, req, res, next) {
 		data.stack = err.stack
 	}
 	if (parseInt(statusCode) >= 500) {
-		console.error(err);
+		console.error(err.stack || err);
 	}
 
 	res.status(statusCode).json(data);

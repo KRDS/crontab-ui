@@ -15,10 +15,11 @@
 	var checksum = "<%- checksum %>";
 	var email = "<%= email %>";
 
+	console.log(crontab);
+
 	$(function () {
 		$('[data-toggle="tooltip"]').tooltip();
 		$('[data-toggle="popover"]').popover();
-		console.log(crontab);
 	});
 </script>
 
@@ -78,7 +79,7 @@
 	</tr>
 	</thead>
 	<tbody>
-		<% crontab.forEach(function(cron) { %>
+		<% crontab.lines.filter(line => line.type === 'cronjob').forEach((cron) => { %>
 		<% if (!cron.stopped) { %>
 		<tr>
 		<% } else { %>

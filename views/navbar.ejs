@@ -22,12 +22,11 @@
         </ul>
         <ul class="nav navbar-nav navbar-right">
             <li>
+                <% if (username) { %>
+                <p class="navbar-text"><%= username %>@<%= hostname %></p>
+                <% } else { %>
                 <p class="navbar-text"><%= hostname %></p>
-            </li>
-            <li>
-                <a href="https://github.com/joerx/crontab-ui">
-                Fork me on Github
-                </a>
+                <% } %>
             </li>
         </ul>
     </div><!-- /.navbar-collapse -->

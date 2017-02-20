@@ -76,11 +76,14 @@ function showAlert(msg) {
 // the view.
 function showCronDates() {
 	var cron, m, elem;
-	for (var i = 0; i < crontab.length; i++) {
-		cron = crontab[i];
-		elem = $('#next-' + cron.id);
-		if (cron.next !== 'reboot') {
-			m = moment(cron.next);
+	for (var i = 0; i < crontab.lines.length; i++) {
+		job = crontab.lines[i];
+		elem = $('#next-' + job.id);
+		if (job.type !== 'cronjob') {
+			continue;
+		}
+		if (job.next !== 'reboot') {
+			m = moment(job.next);
 			elem.text(m.fromNow());
 			elem.attr('title', m.format());
 		} else {
@@ -94,12 +97,15 @@ function showCronDates() {
 // full command will be set as `data-content` attribute for the popover.
 function showCronCommands() {
 	var cron, cmd, elem;
-	for (var i = 0; i < crontab.length; i++) {
-		cron = crontab[i];
-		elem = $('#cmd-' + cron.id);
-		cmd = undecorate(cron.command);
+	for (var i = 0; i < crontab.lines.length; i++) {
+		job = crontab.lines[i];
+		if (job.type !== 'cronjob') {
+			continue;
+		}
+		elem = $('#cmd-' + job.id);
+		cmd = job.command;
 		elem.text(cmd);
-		elem.attr('data-content', '<code>' + cron.command + '</code>');
+		elem.attr('data-content', '<code>' + job.command + '</code>');
 	}
 }
 
@@ -124,14 +130,14 @@ function doDeleteJob(id) {
 		return;
 	}
 
-	crontab.splice(crontab.indexOf(cron), 1);
+	crontab.lines.splice(crontab.lines.indexOf(cron), 1);
 	updateCrontab();
 }
 
 function findJob(id) {
-	for(i = 0; i< crontab.length; i++) {
-		if (crontab[i].id === id) {
-			return crontab[i];
+	for(i = 0; i< crontab.lines.length; i++) {
+		if (crontab.lines[i].id === id) {
+			return crontab.lines[i];
 		}
 	}
 }
@@ -148,7 +154,6 @@ function editJob(id){
 		return;
 	}
 
-
 	// if macro not used
 	if(cron.schedule.indexOf('@') != 0){
 		var components = cron.schedule.split(' ');
@@ -160,7 +165,7 @@ function editJob(id){
 	}
 
 	schedule = cron.schedule;
-	jobCommand = undecorate(cron.command);
+	jobCommand = cron.command;
 
 	jobString();
 
@@ -197,7 +202,7 @@ function newJob(){
 			command: decorate(jobCommand),
 			schedule: schedule
 		};
-		crontab.push(cron);
+		crontab.lines.push(cron);
 		updateCrontab();
 	});
 
@@ -205,7 +210,7 @@ function newJob(){
 }
 
 function updateCrontab() {
-	var postData = {crontab: crontab, checksum: checksum};
+	var postData = crontab;
 
 	$.ajax({
 		type: 'post',
@@ -215,7 +220,6 @@ function updateCrontab() {
 		dataType: 'json',
 	})
 	.done(function() {
-		console.log('reload');
 		setFlash('Crontab updated');
 		reloadCrontab();
 	})
@@ -250,10 +254,6 @@ function decorate(cmd) {
 	return 'cronic '+cmd;
 }
 
-function undecorate(entry) {
-	return entry;
-}
-
 // script corresponding to job popup management
 var schedule = '';
 var jobCommand = '';
@@ -264,6 +264,7 @@ function jobString(){
 }
 
 function setSchedule(){
+	// console.log('set schedule');
 	schedule =
 		$("#job-minute").val() + " " +
 		$("#job-hour").val() + " " +
