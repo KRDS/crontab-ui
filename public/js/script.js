@@ -194,13 +194,15 @@ function newJob(){
 	$('#job-name').val('');
 	$('#job-command').val('');
 
-	jobString();
+	// jobString();
+	setSchedule();
 
 	$('#job-save').unbind('click'); // remove existing events attached to this
 	$('#job-save').click(function() {
 		var cron = {
 			command: decorate(jobCommand),
-			schedule: schedule
+			schedule: schedule,
+			type: 'cronjob',
 		};
 		crontab.lines.push(cron);
 		updateCrontab();
